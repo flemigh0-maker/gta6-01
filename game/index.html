@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NEON BAY — Open World Crime</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a0e1a;
+    font-family: "Arial Black", Arial, sans-serif; }
+  #game { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+  .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(5, 8, 18, 0.72); z-index: 20; }
+  .hidden { display: none !important; }
+  .panel { text-align: center; color: #fff; max-width: 640px; padding: 24px; }
+  .title { font-size: 72px; letter-spacing: 6px; margin: 0; line-height: 0.95;
+    background: linear-gradient(180deg, #ff2e88 0%, #ff7a18 55%, #ffd319 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 42px rgba(255, 46, 136, 0.35); }
+  .subtitle { color: #39d5ff; letter-spacing: 10px; font-size: 18px; margin: 10px 0 4px; }
+  .story { color: #cfd8ff; font-family: Arial, sans-serif; font-size: 15px; line-height: 1.6; margin: 14px 0 22px; }
+  .btn { display: inline-block; margin: 6px; padding: 13px 34px; font-size: 19px; letter-spacing: 2px;
+    color: #0a0e1a; background: linear-gradient(90deg, #ffd319, #ff7a18); border: 0; border-radius: 6px;
+    cursor: pointer; font-family: "Arial Black", Arial, sans-serif; }
+  .btn:hover { filter: brightness(1.15); }
+  .btn.ghost { background: transparent; color: #ffd319; border: 2px solid #ffd319; }
+  .controls { color: #8fa0c8; font-family: Arial, sans-serif; font-size: 13px; line-height: 1.9; margin-top: 18px; }
+  .controls b { color: #ffd319; }
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+  #cash { position: absolute; top: 14px; left: 16px; font-size: 26px; color: #7dff6a; }
+  #healthWrap { position: absolute; top: 52px; left: 16px; width: 210px; }
+  #healthBarOuter { background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.7); height: 16px; border-radius: 3px; }
+  #healthBar { height: 100%; width: 100%; background: linear-gradient(90deg, #ff2e4d, #ff7a18); }
+  #healthLabel { font-size: 12px; letter-spacing: 2px; margin-top: 3px; }
+  #stars { position: absolute; top: 12px; right: 16px; font-size: 30px; letter-spacing: 4px; color: #ffd319; }
+  #objective { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); border: 1px solid #ffd319; border-radius: 6px; padding: 8px 18px;
+    font-size: 15px; color: #ffe9a8; max-width: 560px; text-align: center; font-family: Arial, sans-serif; }
+  #objective b { color: #ffd319; font-family: "Arial Black", Arial, sans-serif; }
+  #hint { position: absolute; bottom: 14px; left: 16px; font-size: 13px; color: #dfe6ff;
+    font-family: Arial, sans-serif; background: rgba(0,0,0,0.45); padding: 6px 10px; border-radius: 5px; }
+  #minimap { position: absolute; bottom: 14px; right: 16px; border: 2px solid rgba(255,255,255,0.75);
+    border-radius: 4px; background: #0a0e1a; }
+  #toast { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); font-size: 22px;
+    letter-spacing: 2px; color: #ffd319; opacity: 0; transition: opacity 0.25s; max-width: 720px;
+    text-align: center; line-height: 1.5; font-family: Arial, sans-serif; }
+  #speed { position: absolute; bottom: 14px; right: 210px; font-size: 22px; color: #fff; }
+  #wasted { font-size: 84px; color: #ff2e4d; letter-spacing: 8px; margin: 0; }
+</style>
+</head>
+<body>
+<canvas id="game" width="1280" height="720"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="cash">$0</div>
+  <div id="healthWrap"><div id="healthBarOuter"><div id="healthBar"></div></div><div id="healthLabel">HEALTH</div></div>
+  <div id="stars"></div>
+  <div id="objective"></div>
+  <div id="hint"></div>
+  <div id="speed"></div>
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="toast"></div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="panel">
+    <h1 class="title">NEON BAY</h1>
+    <div class="subtitle">OPEN WORLD CRIME</div>
+    <p class="story">Neon Bay runs on fast cars and faster money. You are <b>Jax Carter</b>, a getaway
+    driver with a debt to pay. Your fixer <b>Mara</b> has five jobs for you — steal, deliver, fight
+    and run. Earn $10,000, pay the debt, and the city is yours.</p>
+    <button class="btn" id="btnStart">NEW GAME</button>
+    <button class="btn ghost hidden" id="btnContinue">CONTINUE</button>
+    <div class="controls">
+      <b>W A S D</b> move / drive &nbsp;·&nbsp; <b>Mouse</b> aim &nbsp;·&nbsp; <b>Click</b> shoot<br>
+      <b>E</b> enter / exit car &nbsp;·&nbsp; <b>Space</b> handbrake &nbsp;·&nbsp; <b>P</b> pause &nbsp;·&nbsp; <b>M</b> mute
+    </div>
+  </div>
+</div>
+
+<div id="paused" class="overlay hidden">
+  <div class="panel">
+    <h1 class="title" style="font-size:48px">PAUSED</h1>
+    <p class="story">Progress is saved automatically. Take a breath, Jax.</p>
+    <button class="btn" id="btnResume">RESUME</button>
+    <button class="btn ghost" id="btnQuit">QUIT TO MENU</button>
+  </div>
+</div>
+
+<div id="over" class="overlay hidden">
+  <div class="panel">
+    <h1 id="wasted">BUSTED</h1>
+    <p class="story" id="overText"></p>
+    <button class="btn" id="btnRetry">TRY AGAIN</button>
+    <button class="btn ghost" id="btnOverMenu">MAIN MENU</button>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
